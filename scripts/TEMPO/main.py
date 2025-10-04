@@ -8,7 +8,7 @@ year, month, day = 2025, 9, 1
 formatted_date = format_date(year, month, day)
 
 #Location
-location = [33.9737, -117.3281]
+location = [40, 3.7]
 zoom_start = 10
 
 # URL WMS
