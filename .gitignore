@@ -1,2 +1,6 @@
 **/desktop.ini
-**/env
+**/env_NasaSpace
+/data/
+/documentation/
+env_NasaSpace/
+scripts/
