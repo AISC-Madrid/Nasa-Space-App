@@ -1,5 +1,3 @@
 **/desktop.ini
 env_NasaSpace/
-/documentation/*
-!/documentation/.gitkeep
 **/__pycache__
