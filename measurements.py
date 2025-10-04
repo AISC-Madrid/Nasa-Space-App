@@ -3,15 +3,22 @@ import pandas as pd
 from openaq import OpenAQ
 from pathlib import Path
 
-sensor_data = pd.read_csv("data/output/sensors_csv")
+sensor_data = pd.read_csv("data/output/sensors.csv")
 sensor_ids = sensor_data["id"]
-API_KEY = "99f6eb5b9e02d83dafed5d2bf8352a22512e0066f0f7e071edb0b07cf2fe4850"
+API_KEY = "f0d2b3f27388d5ce43efa743fe482a5ba6606d90a1ccb425e7a3ea0f51475a57"
 
-for id in sensor_ids:
-    with OpenAQ(api_key=API_KEY) as client:
-        results = client.measurements.list(sensors_id=id, data="hours", limit=1000)
+with OpenAQ(api_key=API_KEY) as client:
+    for sensor_id in sensor_ids:
+        try:
+            results = client.measurements.list(
+                sensors_id=sensor_id,
+                datetime_from="2025-09-01",
+                datetime_to="2025-09-30",
+                data="hours"
+            )
 
-        # Convert results to a JSON-serializable dict
-        data = results.json if isinstance(results.json, dict) else results.dict()
+
+        except Exception as e:
+            print(f"[ERROR] Sensor {sensor_id}: {e}")
 
 
