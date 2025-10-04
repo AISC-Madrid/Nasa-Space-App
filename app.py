@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 # Example function: get air quality from OpenWeatherMap API
 def get_air_quality(lat, lon):
-    API_KEY = "YOUR_API_KEY"  # Replace with OpenWeatherMap or AirVisual API key
+    API_KEY = "427f41463f86839c7cdeef34aa7c5098"  # Replace with OpenWeatherMap or AirVisual API key
     url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
     response = requests.get(url)
     if response.status_code == 200:

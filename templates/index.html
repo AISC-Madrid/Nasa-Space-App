@@ -39,33 +39,6 @@
     // Locate user
     map.locate({setView: true, maxZoom: 12});
 
-    function onLocationFound(e) {
-      var marker = L.marker(e.latlng).addTo(map);
-      marker.bindPopup("You are here").openPopup();
-
-      fetch('/get_air_quality', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({lat: e.latlng.lat, lon: e.latlng.lng})
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          document.getElementById("aqi").textContent = "Error fetching data";
-        } else {
-          document.getElementById("aqi").textContent = data.aqi;
-          let componentsList = document.getElementById("components");
-          componentsList.innerHTML = "";
-          for (const [key, value] of Object.entries(data.components)) {
-            let li = document.createElement("li");
-            li.textContent = `${key.toUpperCase()}: ${value}`;
-            componentsList.appendChild(li);
-          }
-        }
-      });
-    }
-
-    map.on('locationfound', onLocationFound);
     map.on('locationerror', function() {
       alert("Could not detect your location");
     });
