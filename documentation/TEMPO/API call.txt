@@ -1,0 +1,1 @@
+https://nasa-gibs.github.io/gibs-api-docs/python-usage/#display-wms-all-layers

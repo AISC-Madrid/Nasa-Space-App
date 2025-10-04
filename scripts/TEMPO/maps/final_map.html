@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_55a8fff0678f1539dffbd556d30d16ae {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_55a8fff0678f1539dffbd556d30d16ae" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_55a8fff0678f1539dffbd556d30d16ae = L.map(
+                "map_55a8fff0678f1539dffbd556d30d16ae",
+                {
+                    center: [33.9737, -117.3281],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 10,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_acfba5f7e4ebd80d2b60d29da12a7112 = L.tileLayer(
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "Tiles \u0026copy; Esri \u0026mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_acfba5f7e4ebd80d2b60d29da12a7112.addTo(map_55a8fff0678f1539dffbd556d30d16ae);
+        
+    
+            var macro_element_07ce4c64cf3a31141f304d7a1688051d = L.tileLayer.wms(
+                "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS\u0026REQUEST=GetCapabilities",
+                {"attribution": "", "format": "image/png", "layers": "OMI_Nitrogen_Dioxide_Tropo_Column", "styles": "", "time": "2025-09-01", "transparent": true, "version": "1.1.1"}
+            );
+        
+    
+            macro_element_07ce4c64cf3a31141f304d7a1688051d.addTo(map_55a8fff0678f1539dffbd556d30d16ae);
+        
+    
+            var macro_element_c73e179a4adb1d4c70e382cc07e976c5 = L.tileLayer.wms(
+                "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS\u0026REQUEST=GetCapabilities",
+                {"attribution": "", "format": "image/png", "layers": "TEMPO_L3_Formaldehyde_Vertical_Column", "styles": "", "time": "2025-09-01", "transparent": true, "version": "1.1.1"}
+            );
+        
+    
+            macro_element_c73e179a4adb1d4c70e382cc07e976c5.addTo(map_55a8fff0678f1539dffbd556d30d16ae);
+        
+    
+            var macro_element_c8859b4bdca55c7a2f17a92927e09bda = L.tileLayer.wms(
+                "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS\u0026REQUEST=GetCapabilities",
+                {"attribution": "", "format": "image/png", "layers": "TEMPO_L3_Ozone_UV_Aerosol_Index", "styles": "", "time": "2025-09-01", "transparent": true, "version": "1.1.1"}
+            );
+        
+    
+            macro_element_c8859b4bdca55c7a2f17a92927e09bda.addTo(map_55a8fff0678f1539dffbd556d30d16ae);
+        
+    
+            var macro_element_fe92b08a80c4d524f4da12963e95c804 = L.tileLayer.wms(
+                "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS\u0026REQUEST=GetCapabilities",
+                {"attribution": "", "format": "image/png", "layers": "MODIS_Aqua_Aerosol_Optical_Depth_3km", "styles": "", "time": "2025-09-01", "transparent": true, "version": "1.1.1"}
+            );
+        
+    
+            macro_element_fe92b08a80c4d524f4da12963e95c804.addTo(map_55a8fff0678f1539dffbd556d30d16ae);
+        
+    
+            var macro_element_3c93d7f0271fe5e2302bf43823c92eaa = L.tileLayer.wms(
+                "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS\u0026REQUEST=GetCapabilities",
+                {"attribution": "", "format": "image/png", "layers": "TEMPO_L3_Ozone_Column_Amount", "styles": "", "time": "2025-09-01", "transparent": true, "version": "1.1.1"}
+            );
+        
+    
+            macro_element_3c93d7f0271fe5e2302bf43823c92eaa.addTo(map_55a8fff0678f1539dffbd556d30d16ae);
+        
+    
+            var layer_control_995946d3390ea1557fd35fb2f5a93b03_layers = {
+                base_layers : {
+                    "esriworldimagery" : tile_layer_acfba5f7e4ebd80d2b60d29da12a7112,
+                },
+                overlays :  {
+                    "Nitrogen Dioxide Levels" : macro_element_07ce4c64cf3a31141f304d7a1688051d,
+                    "Formaldehyde Levels" : macro_element_c73e179a4adb1d4c70e382cc07e976c5,
+                    "Aerosol Index (AI)" : macro_element_c8859b4bdca55c7a2f17a92927e09bda,
+                    "Particulate Matter (PM)" : macro_element_fe92b08a80c4d524f4da12963e95c804,
+                    "Ozone Levels" : macro_element_3c93d7f0271fe5e2302bf43823c92eaa,
+                },
+            };
+            let layer_control_995946d3390ea1557fd35fb2f5a93b03 = L.control.layers(
+                layer_control_995946d3390ea1557fd35fb2f5a93b03_layers.base_layers,
+                layer_control_995946d3390ea1557fd35fb2f5a93b03_layers.overlays,
+                {
+  "position": "topright",
+  "collapsed": true,
+  "autoZIndex": true,
+}
+            ).addTo(map_55a8fff0678f1539dffbd556d30d16ae);
+
+        
+    
+            var marker_a93f826f5ec607b1058781a3d59df5bf = L.marker(
+                [33.9737, -117.3281],
+                {
+}
+            ).addTo(map_55a8fff0678f1539dffbd556d30d16ae);
+        
+    
+            var icon_b2065cc01c1fc2fd46872ed7c9ff92d1 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "person",
+  "prefix": "fa",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+                marker_a93f826f5ec607b1058781a3d59df5bf.setIcon(icon_b2065cc01c1fc2fd46872ed7c9ff92d1);
+            
+</script>
+</html>
