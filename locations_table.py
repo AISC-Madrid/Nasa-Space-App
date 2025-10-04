@@ -11,7 +11,9 @@ rows = []
 for location in locations:
     row = {
         "id": location.get("id"),
-        "name": location.get("name")
+        "name": location.get("name"),
+        "latitude": location["coordinates"]["latitude"],
+        "longitude": location["coordinates"]["longitude"],
     }
     rows.append(row)
 
