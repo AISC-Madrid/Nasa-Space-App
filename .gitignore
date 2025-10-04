@@ -1,5 +1,8 @@
 **/desktop.ini
 env_NasaSpace/
 /data/*
+!/data/.gitkeep
 /scripts/*
+!/scripts/.gitkeep
 /documentation/*
+!/documentation/.gitkeep
