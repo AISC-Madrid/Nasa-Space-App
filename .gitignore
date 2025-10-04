@@ -6,3 +6,4 @@ env_NasaSpace/
 !/scripts/.gitkeep
 /documentation/*
 !/documentation/.gitkeep
+/venv/*
