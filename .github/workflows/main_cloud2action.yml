@@ -58,4 +58,4 @@ jobs:
         with:
           app-name: 'cloud2action'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_EFBFFB24AAAD4072B192DFFCD51BE7CF }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9BB017C99675464E972378207AF722BD }}
