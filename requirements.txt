@@ -1,3 +1,7 @@
 pandas
 requests
 openaq
+numpy 
+openaq
+skforecast
+scikit-learn
