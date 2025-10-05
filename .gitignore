@@ -3,7 +3,6 @@ env_NasaSpace/
 **/__pycache__
 /data/*
 !/data/.gitkeep
-/scripts/*
 !/scripts/.gitkeep
 /documentation/*
 !/documentation/.gitkeep
