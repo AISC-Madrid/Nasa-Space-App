@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cloud2Action Health – WMS Map</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/728/728093.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <style>
+    body {
+      height: 100vh;
+      overflow: hidden;
+      font-family: "Inter", system-ui, sans-serif;
+      background-color: #f9fafb;
+    }
+
+    nav.navbar {
+      background-color: #0d6efd;
+    }
+    nav.navbar .navbar-brand {
+      color: white;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    #map {
+      height: calc(100vh - 56px);
+      width: 100%;
+    }
+
+    .info-panel {
+      height: calc(100vh - 56px);
+      overflow-y: auto;
+      background: #ffffff;
+      border-left: 1px solid #dee2e6;
+      padding: 2rem;
+      box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .info-panel h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: #0d6efd;
+    }
+
+    .aqi-value {
+      font-size: 3rem;
+      font-weight: 700;
+      margin: 0.5rem 0;
+    }
+
+    .list-group-item {
+      border: none;
+      padding: 0.5rem 0;
+      font-size: 0.95rem;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #888;
+      padding: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark px-4">
+    <a class="navbar-brand" href="#">cloud2action.health</a>
+  </nav>
+
+  <!-- Main container -->
+  <div class="container-fluid px-0">
+    <div class="row g-0">
+      
+      <!-- Map -->
+      <div class="col-md-8">
+        <div id="map"></div>
+      </div>
+
+      <!-- Info Panel -->
+      <div class="col-md-4 info-panel d-flex flex-column justify-content-between">
+        <div>
+          <div class="text-center mb-4">
+            <h2>Air Quality Index</h2>
+            <p class="aqi-value text-primary" id="aqi">--</p>
+            <p class="text-muted">Tap on the map or use your location</p>
+          </div>
+
+          <div>
+            <h5>Pollutant Components</h5>
+            <ul class="list-group" id="components">
+              <!-- Filled dynamically -->
+            </ul>
+          </div>
+        </div>
+
+        <footer>
+          &copy; 2025 cloud2action.health – Environmental Insights Dashboard
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script>
+    // Initialize map
+    var map = L.map('map').fitWorld();
+
+    // Base tile layer
+    var baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // WMS layers
+    var wmsNO2 = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
+        layers: "OMI_Nitrogen_Dioxide_Tropo_Column",
+        format: "image/png",
+        transparent: true,
+        version: "1.1.1",
+        attribution: "NASA GIBS"
+    });
+
+    var wmsOzone = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
+        layers: "TEMPO_L3_Ozone_Column_Amount",
+        format: "image/png",
+        transparent: true,
+        version: "1.1.1",
+        attribution: "NASA GIBS"
+    });
+
+    var wmsPM = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
+        layers: "MODIS_Aqua_Aerosol_Optical_Depth_3km",
+        format: "image/png",
+        transparent: true,
+        version: "1.1.1",
+        attribution: "NASA GIBS"
+    });
+
+    var wmsAI = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
+        layers: "TEMPO_L3_Ozone_UV_Aerosol_Index",
+        format: "image/png",
+        transparent: true,
+        version: "1.1.1",
+        attribution: "NASA GIBS"
+    });
+
+    // Add **default visible layer**
+    wmsNO2.addTo(map);
+
+    // Layer control
+    var overlayMaps = {
+        "Nitrogen Dioxide": wmsNO2,
+        "Ozone": wmsOzone,
+        "Particulate Matter": wmsPM,
+        "Aerosol Index": wmsAI
+    };
+
+    L.control.layers({"OpenStreetMap": baseLayer}, overlayMaps).addTo(map);
+
+    // Locate user
+    map.locate({setView: true, maxZoom: 12});
+
+    map.on('locationfound', e => {
+        L.marker(e.latlng).addTo(map)
+          .bindPopup('You are here').openPopup();
+        fetchAirQuality(e.latlng.lat, e.latlng.lng);
+    });
+
+    map.on('click', e => {
+        map.closePopup();
+        L.marker(e.latlng).addTo(map)
+          .bindPopup('Fetching air quality...').openPopup();
+        fetchAirQuality(e.latlng.lat, e.latlng.lng);
+    });
+</script>
+
+
+</body>
+</html>

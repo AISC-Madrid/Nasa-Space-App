@@ -1,5 +1,6 @@
 **/desktop.ini
 env_NasaSpace/
+**/__pycache__
 /data/*
 !/data/.gitkeep
 /scripts/*
@@ -7,3 +8,4 @@ env_NasaSpace/
 /documentation/*
 !/documentation/.gitkeep
 .env
+/venv/*
