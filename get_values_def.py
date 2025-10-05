@@ -141,7 +141,7 @@ datetime_from = "2025-10-04T00:00:00Z"
 datetime_to = "2025-10-04T23:59:59Z"
 limit = 1000
 
-with OpenAQ(api_key="f0d2b3f27388d5ce43efa743fe482a5ba6606d90a1ccb425e7a3ea0f51475a57") as client:
+with OpenAQ(api_key="a19444b8b983c4def60c98df1010f162da2bbffbb1f494ccbffee228068cbef7") as client:
     measurements = get_measurements(sensor_ids, datetime_from, datetime_to, limit, client, sensor_data)
 
 # Show the original dataframe (unchanged)
@@ -201,7 +201,3 @@ else:
         print(f"[POLLUTION PERCENTAGE] {pc_no_cap:.1f}% (no cap)")
         print(f"[POLLUTION INDEX 0–100] {pc_0_100:.1f}")
 # --------------------------------------------------------------------------------------------
-
-
-
-
