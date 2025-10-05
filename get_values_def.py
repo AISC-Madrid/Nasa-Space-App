@@ -98,20 +98,22 @@ def compute_pollution_percentage(latest_by_param: Dict[str, float]) -> Tuple[Opt
 # PM2.5 (24h): WHO AQG & Interim Targets -> 5 bands
 # Very Low ≤ 15; Low (15, 25]; Moderate (25, 37.5]; High (37.5, 50]; Extreme > 50  [µg/m³]
 
-def classify_pm25_risk(pm25_value: float) -> Optional[str]:
+def classify_pm25_quality(pm25_value: float) -> Optional[str]:
     if pm25_value is None:
         return None
     v = float(pm25_value)
-    if v <= 15.0:
-        return "Very Low"
-    elif v <= 25.0:
-        return "Low"
-    elif v <= 37.5:
-        return "Moderate"
-    elif v <= 50.0:
-        return "High"
+    if v <= 9.0:
+        return "GOOD"
+    elif v <= 35.4:
+        return "MODERATE"
+    elif v <= 55.4:
+        return "UNHEALTHY FOR SENSITIVE GROUPS"
+    elif v <= 125.4:
+        return "UNHEALTHY"
+    elif v <= 225.4:
+        return "VERYUNHEALTHY"
     else:
-        return "Extreme"
+        return "HAZARDOUS"
 
 
 # NO2: WHO 2021 24h AQG/ITs (25, 50, 120) + WHO 1h level (200) -> 5 bands
@@ -153,6 +155,7 @@ def get_air_quality_payload(
           "pc_no_cap": float | None,
           "pm25_risk": str | None,
           "no2_risk": str | None,
+          "latest_params": list[dict] | None,
           "dataframe": pd.DataFrame (the full measurements df)
         }
     """
@@ -165,7 +168,7 @@ def get_air_quality_payload(
         measurements = get_measurements(sensor_ids, date_from_iso, date_to_iso, limit, client, sensor_data)
 
     if measurements is None or measurements.empty:
-        return {"pc_no_cap": None, "pm25_risk": None, "no2_risk": None, "dataframe": pd.DataFrame()}
+        return {"pc_no_cap": None, "pm25_risk": None, "no2_risk": None, "latest_params": None, "dataframe": pd.DataFrame()}
 
     df = measurements.copy()
     df["parameter_std"] = df["parameter"].apply(_canon)
@@ -178,10 +181,20 @@ def get_air_quality_payload(
         for _, row in latest_rows.iterrows()
     }
 
+    # --- NEW: print and collect latest value per parameter (for console + frontend) ---
+    latest_pairs = []
+    for k in sorted(latest_by_param.keys()):
+        v = latest_by_param[k]
+        if v is None:
+            continue
+        value_str = f"{v:.3f}".rstrip("0").rstrip(".")
+        print(f"{k}: {value_str}")
+        latest_pairs.append({"parameter": k, "value": v, "value_str": value_str})
+
     last_pm25 = latest_by_param.get("PM25")
     last_no2 = latest_by_param.get("NO2")
 
-    pm25_risk = classify_pm25_risk(last_pm25) if last_pm25 is not None else None
+    pm25_risk = classify_pm25_quality(last_pm25) if last_pm25 is not None else None
     no2_risk = classify_no2_risk(last_no2) if last_no2 is not None else None
 
     pc_no_cap, pc_0_100 = compute_pollution_percentage(latest_by_param)
@@ -190,6 +203,7 @@ def get_air_quality_payload(
         "pc_no_cap": pc_no_cap,
         "pm25_risk": pm25_risk,
         "no2_risk": no2_risk,
+        "latest_params": latest_pairs,   # <-- NEW
         "dataframe": df,
     }
 
@@ -206,12 +220,17 @@ if __name__ == "__main__":
     payload = get_air_quality_payload(lat, lon, date_from, date_to, api_key="a19444b8b983c4def60c98df1010f162da2bbffbb1f494ccbffee228068cbef7")
 
     df = payload["dataframe"]
-    # Ensure the dataframe is stably sorted and index reset before printing/sending to frontend
     if df is not None and not df.empty:
         df = df.sort_values(["datetime", "parameter_std", "sensor_id"], kind="mergesort").reset_index(drop=True)
 
     print(df)
 
     print(f"[POLLUTION PERCENTAGE] {payload['pc_no_cap'] if payload['pc_no_cap'] is not None else 'N/A'}")
-    print(f"[HEALTH RISK (PM2.5)] {payload['pm25_risk'] if payload['pm25_risk'] else 'N/A'}")
+    print(f"[HEALTH QUALITY (PM2.5)] {payload['pm25_risk'] if payload['pm25_risk'] else 'N/A'}")
     print(f"[RISK X (NO2)] {payload['no2_risk'] if payload['no2_risk'] else 'N/A'}")
+
+    # Also print the per-parameter latest values collected for the frontend
+    if payload.get("latest_params"):
+        print("Latest per-parameter values:")
+        for item in payload["latest_params"]:
+            print(f" - {item['parameter']}: {item['value_str']} µg/m³")
