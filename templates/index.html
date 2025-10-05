@@ -2,46 +2,185 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Air Quality Dashboard</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <title>Cloud2Action Health – Air Quality Dashboard</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/728/728093.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <style>
+    body {
+      height: 100vh;
+      overflow: hidden;
+      font-family: "Inter", system-ui, sans-serif;
+      background-color: #f9fafb;
+    }
+
+    /* Navbar */
+    nav.navbar {
+      background-color: #0d6efd;
+    }
+
+    nav.navbar .navbar-brand {
+      color: white;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* Layout */
+    #map {
+      height: calc(100vh - 56px);
+      width: 100%;
+    }
+
+    .info-panel {
+      height: calc(100vh - 56px);
+      overflow-y: auto;
+      background: #ffffff;
+      border-left: 1px solid #dee2e6;
+      padding: 2rem;
+      box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .info-panel h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: #0d6efd;
+    }
+
+    .aqi-value {
+      font-size: 3rem;
+      font-weight: 700;
+      margin: 0.5rem 0;
+    }
+
+    .list-group-item {
+      border: none;
+      padding: 0.5rem 0;
+      font-size: 0.95rem;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #888;
+      padding: 0.5rem;
+    }
+  </style>
 </head>
 <body>
-  <div class="container-fluid">
-    <div class="row vh-100">
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark px-4">
+    <a class="navbar-brand" href="#">cloud2action.health</a>
+  </nav>
+
+  <!-- Main container -->
+  <div class="container-fluid px-0">
+    <div class="row g-0">
       
-      <!-- Map (Left side) -->
-      <div class="col-md-8 p-0">
+      <!-- Map -->
+      <div class="col-md-8">
         <div id="map"></div>
       </div>
-      
-      <!-- Air quality info (Right side) -->
-      <div class="col-md-4 d-flex flex-column justify-content-center align-items-center bg-light">
-        <h2>Air Quality</h2>
-        <p><strong>AQI:</strong> <span id="aqi">Loading...</span></p>
-        <ul id="components"></ul>
-      </div>
 
+      <!-- Info Panel -->
+      <div class="col-md-4 info-panel d-flex flex-column justify-content-between">
+        <div>
+          <div class="text-center mb-4">
+            <h2>Air Quality Index</h2>
+            <p class="aqi-value text-primary" id="aqi">--</p>
+            <p class="text-muted">Tap on the map or use your location</p>
+          </div>
+
+          <div>
+            <h5>Pollutant Components</h5>
+            <ul class="list-group" id="components">
+              <!-- Filled dynamically -->
+            </ul>
+          </div>
+        </div>
+
+        <footer>
+          &copy; 2025 cloud2action.health – Environmental Insights Dashboard
+        </footer>
+      </div>
     </div>
   </div>
 
+  <!-- JS -->
   <script>
-    // Initialize map
-    var map = L.map('map').fitWorld();
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
-    }).addTo(map);
+  // Initialize map
+  var map = L.map('map').fitWorld();
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
 
-    // Locate user
-    map.locate({setView: true, maxZoom: 12});
+  // Locate user
+  map.locate({setView: true, maxZoom: 12});
 
-    map.on('locationerror', function() {
-      alert("Could not detect your location");
-    });
-  </script>
+  // When location is found
+  map.on('locationfound', e => {
+      L.marker(e.latlng).addTo(map)
+        .bindPopup('You are here').openPopup();
+      fetchAirQuality(e.latlng.lat, e.latlng.lng);
+  });
+
+  // When user clicks somewhere on the map
+  map.on('click', e => {
+      // Remove old popups
+      map.closePopup();
+      
+      // Add marker at clicked location
+      L.marker(e.latlng).addTo(map)
+        .bindPopup('Fetching air quality...').openPopup();
+      
+      // Call backend to get AQI
+      fetchAirQuality(e.latlng.lat, e.latlng.lng);
+  });
+
+  // Fetch air quality data from backend
+  async function fetchAirQuality(lat, lon) {
+      try {
+          const res = await fetch("/get_air_quality", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ lat, lon })
+          });
+          const data = await res.json();
+
+          if (data.error) {
+              document.getElementById("aqi").textContent = "Error";
+              document.getElementById("components").innerHTML =
+                  `<li class="list-group-item text-danger">${data.error}</li>`;
+              return;
+          }
+
+          document.getElementById("aqi").textContent = data.aqi;
+
+          const componentsList = document.getElementById("components");
+          componentsList.innerHTML = "";
+          for (const [key, value] of Object.entries(data.components)) {
+              componentsList.innerHTML += `
+                <li class="list-group-item d-flex justify-content-between">
+                  <span>${key.toUpperCase()}</span>
+                  <span class="fw-bold">${value.toFixed(2)} µg/m³</span>
+                </li>`;
+          }
+
+      } catch (err) {
+          document.getElementById("aqi").textContent = "--";
+          document.getElementById("components").innerHTML =
+              `<li class="list-group-item text-danger">Failed to connect to server.</li>`;
+      }
+  }
+</script>
+
 </body>
 </html>
