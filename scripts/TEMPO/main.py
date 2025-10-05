@@ -1,45 +1,65 @@
-from wms_layer import WMSLayer
-from wms_map import WMSMap
-from wms_service import WMSService
-from utils import format_date
+import os
+from io import BytesIO
+from skimage import io
+import requests
+import json
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import cartopy.crs as ccrs
+import cartopy
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+import folium
+import urllib.request
+import urllib.parse
+import mapbox_vector_tile
+import xml.etree.ElementTree as xmlet
+import lxml.etree as xmltree
+from PIL import Image as plimg
+from PIL import ImageDraw
+import numpy as np
+import pandas as pd
+from owslib.wms import WebMapService
+from IPython.display import Image, display
+import geopandas as gpd
+from shapely.geometry import box
+import urllib.request
+import rasterio
+from rasterio.mask import mask
+from rasterio.warp import calculate_default_transform, reproject, Resampling
+from rasterio.plot import show
+import fiona
+from datetime import datetime, timedelta
 
-# Date
-year, month, day = 2025, 9, 1
-formatted_date = format_date(year, month, day)
+# Construct capability URL.
+wmsUrl = 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?\
+SERVICE=WMS&REQUEST=GetCapabilities'
 
-#Location
-location = [40, 3.7]
-zoom_start = 10
+# Request WMS capabilities.
+response = requests.get(wmsUrl)
 
-# URL WMS
-wms_url = "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetCapabilities"
+# Display capabilities XML in original format. Tag and content in one line.
+WmsXml = xmltree.fromstring(response.content)
+# print(xmltree.tostring(WmsXml, pretty_print = True, encoding = str))
 
-# Map
-wms_map = WMSMap(location=location, zoom_start=zoom_start, tiles="Esri.WorldImagery")
+# Currently total layers are 1081.
 
-# Layers
+# Coverts response to XML tree.
+WmsTree = xmlet.fromstring(response.content)
 
-# Nitrogen Dioxide
-l_1 = WMSLayer("Nitrogen Dioxide Levels", "OMI_Nitrogen_Dioxide_Tropo_Column", wms_url, time=formatted_date)
-#Formaldehyde
-l_2 = WMSLayer("Formaldehyde Levels", "TEMPO_L3_Formaldehyde_Vertical_Column", wms_url, time=formatted_date)
-#Aerosol Index (AI)
-l_3 = WMSLayer("Aerosol Index (AI)", "TEMPO_L3_Ozone_UV_Aerosol_Index", wms_url, time=formatted_date)
-#Particulate Matter (PM)
-l_4 = WMSLayer("Particulate Matter (PM)", "MODIS_Aqua_Aerosol_Optical_Depth_3km", wms_url, time=formatted_date)
-#Ozone
-l_5 = WMSLayer("Ozone Levels", "TEMPO_L3_Ozone_Column_Amount", wms_url, time=formatted_date)
+alllayer = []
+layerNumber = 0
 
-layers = [l_1, l_2, l_3, l_4, l_5]
+# Parse XML.
+for child in WmsTree.iter():
+    for layer in child.findall("./{http://www.opengis.net/wms}Capability/{http://www.opengis.net/wms}Layer//*/"): 
+         if layer.tag == '{http://www.opengis.net/wms}Layer': 
+            f = layer.find("{http://www.opengis.net/wms}Name")
+            if f is not None:
+                alllayer.append(f.text)
+                
+                layerNumber += 1
 
-# Add layers
-for layers in layers:
-    wms_map.add_layer(layers)
+print('There are layers: ' + str(layerNumber))
 
-# Layer control
-wms_map.add_layer_control()
-
-wms_map.add_pin()
-
-# Save map
-wms_map.save("scripts/TEMPO/maps/final_map.html")
+for one in sorted(alllayer)[:1175]:
+    print(one)

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cloud2Action Health – WMS Map</title>
+  <title>Cloud2Action Health - WMS Map</title>
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/728/728093.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -123,7 +123,7 @@
 
     // WMS layers
     var wmsNO2 = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
-        layers: "OMI_Nitrogen_Dioxide_Tropo_Column",
+        layers: "SMAP_L4_Mean_Net_Ecosystem_Exchange",
         format: "image/png",
         transparent: true,
         version: "1.1.1",
@@ -168,7 +168,7 @@
     L.control.layers({"OpenStreetMap": baseLayer}, overlayMaps).addTo(map);
 
     // Locate user
-    map.locate({setView: true, maxZoom: 12});
+    map.locate({setView: true, maxZoom: 8});
 
     map.on('locationfound', e => {
         L.marker(e.latlng).addTo(map)
@@ -182,6 +182,46 @@
           .bindPopup('Fetching air quality...').openPopup();
         fetchAirQuality(e.latlng.lat, e.latlng.lng);
     });
+
+    // Fetch air quality from Flask API
+function fetchAirQuality(lat, lon) {
+    fetch(`/api/air_quality?lat=${lat}&lon=${lon}`)
+        .then(response => response.json())
+        .then(data => {
+            // Update AQI value
+            document.getElementById("aqi").textContent = 
+                data.pollution_percentage !== null ? data.pollution_percentage.toFixed(1) + "%" : "--";
+
+            // Update PM2.5 and NO2 risks
+            const componentsList = document.getElementById("components");
+            componentsList.innerHTML = ""; // clear previous values
+
+            if (data.pm25_risk) {
+                const li = document.createElement("li");
+                li.className = "list-group-item";
+                li.textContent = `PM2.5 Risk: ${data.pm25_risk}`;
+                componentsList.appendChild(li);
+            }
+            if (data.no2_risk) {
+                const li = document.createElement("li");
+                li.className = "list-group-item";
+                li.textContent = `NO2 Risk: ${data.no2_risk}`;
+                componentsList.appendChild(li);
+            }
+
+            // Add latest per-parameter values
+            for (const [param, value] of Object.entries(data.latest_values || {})) {
+                const li = document.createElement("li");
+                li.className = "list-group-item";
+                li.textContent = `${param}: ${value}`;
+                componentsList.appendChild(li);
+            }
+        })
+        .catch(err => {
+            console.error("Error fetching air quality:", err);
+            document.getElementById("aqi").textContent = "--";
+        });
+}
 </script>
 
 
