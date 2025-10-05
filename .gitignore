@@ -9,3 +9,4 @@ env_NasaSpace/
 !/documentation/.gitkeep
 .env
 /venv/*
+/__pycache__/*
