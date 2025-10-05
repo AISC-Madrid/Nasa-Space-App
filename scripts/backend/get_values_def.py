@@ -1,4 +1,4 @@
-from .euclidean import nearest_location, euclidean_distance
+from scripts.backend.euclidean import nearest_location, euclidean_distance
 from .measurements import get_measurements
 import pandas as pd
 from openaq import OpenAQ
