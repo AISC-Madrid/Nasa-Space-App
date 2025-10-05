@@ -2,6 +2,10 @@ from euclidean import nearest_location, euclidean_distance
 from measurements import get_measurements
 import pandas as pd
 from openaq import OpenAQ
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 locations_path = "data/output/locations.csv"
 sensors_path = "data/output/sensors.csv"
@@ -16,6 +20,6 @@ sensor_ids = sensor_data[sensor_data["location_id"] == nearest_location_id]["id"
 datetime_from = "2025-10-04T00:00:00Z"
 datetime_to = "2025-10-04T23:59:59Z"
 limit = 1000
-with OpenAQ(api_key="a19444b8b983c4def60c98df1010f162da2bbffbb1f494ccbffee228068cbef7") as client:
+with OpenAQ(api_key=os.getenv("OPENAQ_API_KEY")) as client:
     measurements = get_measurements(sensor_ids, datetime_from, datetime_to, limit, client, sensor_data)
 print(measurements)
