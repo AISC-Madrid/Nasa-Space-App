@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cloud2Action Health - WMS Map</title>
+  <title>Cloud2Action Health - Air Quality Map</title>
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/728/728093.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -18,16 +18,17 @@
       height: 100vh;
       overflow: hidden;
       font-family: "Inter", system-ui, sans-serif;
-      background-color: #f9fafb;
+      background-color: #f4f6f9;
     }
 
     nav.navbar {
-      background-color: #0d6efd;
+      background: linear-gradient(90deg, #007bff, #00bcd4);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
     }
     nav.navbar .navbar-brand {
       color: white;
-      font-weight: 600;
-      letter-spacing: 0.5px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
     }
 
     #map {
@@ -39,34 +40,92 @@
       height: calc(100vh - 56px);
       overflow-y: auto;
       background: #ffffff;
-      border-left: 1px solid #dee2e6;
+      border-left: none;
       padding: 2rem;
-      box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+      animation: slideIn 0.6s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(50px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
 
     .info-panel h2 {
-      font-size: 1.5rem;
+      font-size: 1.7rem;
       margin-bottom: 1rem;
-      color: #0d6efd;
+      background: linear-gradient(90deg, #007bff, #00bcd4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 700;
+    }
+
+    .aqi-box {
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      text-align: center;
+      transition: 0.3s;
+    }
+
+    .aqi-box:hover {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
     }
 
     .aqi-value {
       font-size: 3rem;
-      font-weight: 700;
+      font-weight: 800;
       margin: 0.5rem 0;
     }
 
-    .list-group-item {
-      border: none;
-      padding: 0.5rem 0;
-      font-size: 0.95rem;
+    .alert-aqi {
+      font-weight: 600;
+      padding: 0.4em 0.8em;
+      border-radius: 0.5rem;
+      display: inline-block;
+      color: white;
+      margin-top: 0.3rem;
+    }
+
+    .GOOD { background-color: #28a745; }
+    .MODERATE { background-color: #ffc107; color: #212529; }
+    .UNHEALTHYFORSS { background-color: #fd7e14; }
+    .UNHEALTHY { background-color: #dc3545; }
+    .VERYUNHEALTHY { background-color: #6f42c1; }
+    .HAZARDOUS { background-color: #343a40; }
+
+    .pollutant-card {
+      background: #f8f9fa;
+      border-radius: 0.8rem;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      margin-bottom: 0.75rem;
+      transition: 0.25s;
+    }
+
+    .pollutant-card:hover {
+      transform: translateY(-2px);
+      background: #eef3f9;
+    }
+
+    .pollutant-title {
+      font-weight: 600;
+      color: #0d6efd;
+    }
+
+    .pollutant-value {
+      font-weight: 700;
+      color: #212529;
     }
 
     footer {
       text-align: center;
       font-size: 0.85rem;
       color: #888;
-      padding: 0.5rem;
+      padding: 0.75rem;
+      border-top: 1px solid #e0e0e0;
     }
   </style>
 </head>
@@ -74,13 +133,13 @@
 
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark px-4">
-    <a class="navbar-brand" href="#">cloud2action.health</a>
+    <a class="navbar-brand" href="#">☁️ cloud2action.health</a>
   </nav>
 
   <!-- Main container -->
   <div class="container-fluid px-0">
     <div class="row g-0">
-      
+
       <!-- Map -->
       <div class="col-md-8">
         <div id="map"></div>
@@ -89,141 +148,147 @@
       <!-- Info Panel -->
       <div class="col-md-4 info-panel d-flex flex-column justify-content-between">
         <div>
-          <div class="text-center mb-4">
+          <div class="aqi-box mb-4">
             <h2>Air Quality Index</h2>
             <p class="aqi-value text-primary" id="aqi">--</p>
-            <p class="text-muted">Tap on the map or use your location</p>
+            <p id="aqi-alert" class="alert-aqi bg-secondary">Waiting for data...</p>
+            <p class="text-muted mt-2">Tap on the map or use your location</p>
           </div>
 
           <div>
-            <h5>Pollutant Components</h5>
-            <ul class="list-group" id="components">
-              <!-- Filled dynamically -->
-            </ul>
+            <h5 class="mb-3 text-primary fw-bold">Pollutant Components</h5>
+            <div id="components"></div>
           </div>
         </div>
 
         <footer>
-          &copy; 2025 cloud2action.health – Environmental Insights Dashboard
+          &copy; 2025 <strong>Cloud2Action Health</strong> – Environmental Insights Dashboard
         </footer>
       </div>
+
     </div>
   </div>
 
   <!-- JS -->
   <script>
-    // Initialize map
-    var map = L.map('map').fitWorld();
-
-    // Base tile layer
-    var baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '&copy; OpenStreetMap contributors'
+    const map = L.map('map').fitWorld();
+    const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 3,
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // WMS layers
-    var wmsNO2 = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
-        layers: "SMAP_L4_Mean_Net_Ecosystem_Exchange",
-        format: "image/png",
-        transparent: true,
-        version: "1.1.1",
-        attribution: "NASA GIBS"
-    });
+    // 🌍 Base Map
 
-    var wmsOzone = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
-        layers: "TEMPO_L3_Ozone_Column_Amount",
-        format: "image/png",
-        transparent: true,
-        version: "1.1.1",
-        attribution: "NASA GIBS"
-    });
+// 🌫️ NASA GIBS WMS Layers
+const wmsLayers = {
+  "Nitrogen Dioxide": L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
+    layers: "SMAP_L4_Mean_Net_Ecosystem_Exchange",
+    format: "image/png",
+    transparent: true,
+    version: "1.1.1",
+    attribution: "NASA GIBS"
+  }),
 
-    var wmsPM = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
-        layers: "MODIS_Aqua_Aerosol_Optical_Depth_3km",
-        format: "image/png",
-        transparent: true,
-        version: "1.1.1",
-        attribution: "NASA GIBS"
-    });
+  "Ozone": L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
+    layers: "TEMPO_L3_Ozone_Column_Amount",
+    format: "image/png",
+    transparent: true,
+    version: "1.1.1",
+    attribution: "NASA GIBS"
+  }),
 
-    var wmsAI = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
-        layers: "TEMPO_L3_Ozone_UV_Aerosol_Index",
-        format: "image/png",
-        transparent: true,
-        version: "1.1.1",
-        attribution: "NASA GIBS"
-    });
+  "Particulate Matter": L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
+    layers: "MODIS_Aqua_Aerosol_Optical_Depth_3km",
+    format: "image/png",
+    transparent: true,
+    version: "1.1.1",
+    attribution: "NASA GIBS"
+  }),
 
-    // Add **default visible layer**
-    wmsNO2.addTo(map);
+  "Radiation": L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
+    layers: "AIRS_L3_All_Sky_Outgoing_Longwave_Radiation_Daily_Day",
+    format: "image/png",
+    transparent: true,
+    version: "1.1.1",
+    attribution: "NASA GIBS"
+  })
+};
 
-    // Layer control
-    var overlayMaps = {
-        "Nitrogen Dioxide": wmsNO2,
-        "Ozone": wmsOzone,
-        "Particulate Matter": wmsPM,
-        "Aerosol Index": wmsAI
-    };
+// ✅ Default visible layer
+wmsLayers["Nitrogen Dioxide"].addTo(map);
 
-    L.control.layers({"OpenStreetMap": baseLayer}, overlayMaps).addTo(map);
+// 🧭 Add Layer Control (base map + overlays)
+L.control.layers(
+  { "OpenStreetMap": baseLayer },
+  {
+    "Nitrogen Dioxide (NO₂)": wmsLayers["Nitrogen Dioxide"],
+    "Ozone (O₃)": wmsLayers["Ozone"],
+    "Particulate Matter (PM₂.₅)": wmsLayers["Particulate Matter"],
+    "Radiation": wmsLayers["Radiation"]
+  }
+).addTo(map);
 
-    // Locate user
-    map.locate({setView: true, maxZoom: 8});
 
+    map.locate({setView: true, maxZoom: 6});
     map.on('locationfound', e => {
-        L.marker(e.latlng).addTo(map)
-          .bindPopup('You are here').openPopup();
-        fetchAirQuality(e.latlng.lat, e.latlng.lng);
+      const marker = L.marker(e.latlng).addTo(map).bindPopup('You are here').openPopup();
+      fetchAirQuality(e.latlng.lat, e.latlng.lng);
     });
 
     map.on('click', e => {
-        map.closePopup();
-        L.marker(e.latlng).addTo(map)
-          .bindPopup('Fetching air quality...').openPopup();
-        fetchAirQuality(e.latlng.lat, e.latlng.lng);
+      map.closePopup();
+      const marker = L.marker(e.latlng).addTo(map).bindPopup('Fetching air quality...').openPopup();
+      fetchAirQuality(e.latlng.lat, e.latlng.lng);
     });
 
-    // Fetch air quality from Flask API
-function fetchAirQuality(lat, lon) {
-    fetch(`/api/air_quality?lat=${lat}&lon=${lon}`)
-        .then(response => response.json())
+    function fetchAirQuality(lat, lon) {
+      fetch(`/api/air_quality?lat=${lat}&lon=${lon}`)
+        .then(res => res.json())
         .then(data => {
-            // Update AQI value
-            document.getElementById("aqi").textContent = 
-                data.pollution_percentage !== null ? data.pollution_percentage.toFixed(1) + "%" : "--";
+          const aqiValue = document.getElementById("aqi");
+          const alertBox = document.getElementById("aqi-alert");
+          const list = document.getElementById("components");
 
-            // Update PM2.5 and NO2 risks
-            const componentsList = document.getElementById("components");
-            componentsList.innerHTML = ""; // clear previous values
+          const percentage = data.pollution_percentage;
+          aqiValue.textContent = percentage ? percentage.toFixed(1) + "%" : "--";
 
-            if (data.pm25_risk) {
-                const li = document.createElement("li");
-                li.className = "list-group-item";
-                li.textContent = `PM2.5 Risk: ${data.pm25_risk}`;
-                componentsList.appendChild(li);
-            }
-            if (data.no2_risk) {
-                const li = document.createElement("li");
-                li.className = "list-group-item";
-                li.textContent = `NO2 Risk: ${data.no2_risk}`;
-                componentsList.appendChild(li);
-            }
+          // Determine AQI alert
+          const riskLevels = [
+            {max: 50, class: "GOOD", text: "Good – Air quality is satisfactory"},
+            {max: 100, class: "MODERATE", text: "Moderate – Acceptable for most"},
+            {max: 150, class: "UNHEALTHYFORSS", text: "Unhealthy for Sensitive Groups"},
+            {max: 200, class: "UNHEALTHY", text: "Unhealthy – May affect everyone"},
+            {max: 300, class: "VERYUNHEALTHY", text: "Very Unhealthy"},
+            {max: 999, class: "HAZARDOUS", text: "Hazardous – Avoid outdoor activity"}
+          ];
 
-            // Add latest per-parameter values
-            for (const [param, value] of Object.entries(data.latest_values || {})) {
-                const li = document.createElement("li");
-                li.className = "list-group-item";
-                li.textContent = `${param}: ${value}`;
-                componentsList.appendChild(li);
-            }
+          const level = riskLevels.find(l => percentage <= l.max) || riskLevels[5];
+          alertBox.className = `alert-aqi ${level.class}`;
+          alertBox.textContent = level.text;
+
+          list.innerHTML = "";
+          for (const [param, info] of Object.entries(data.latest_values || {})) {
+            const div = document.createElement("div");
+            div.className = "pollutant-card";
+            div.innerHTML = `
+              <div class="d-flex justify-content-between">
+                <span class="pollutant-title">${param.toUpperCase()}</span>
+                <span class="pollutant-value">${info.value ?? "--"}</span>
+              </div>
+              ${info.risk ? `<div class="mt-2"><span class="risk-badge ${info.risk.replace(/ /g,'').toUpperCase()}">${info.risk}</span></div>` : ""}
+            `;
+            list.appendChild(div);
+          }
         })
         .catch(err => {
-            console.error("Error fetching air quality:", err);
-            document.getElementById("aqi").textContent = "--";
+          console.error("Error fetching air quality:", err);
+          document.getElementById("aqi").textContent = "--";
+          document.getElementById("aqi-alert").textContent = "Error retrieving data";
+          document.getElementById("aqi-alert").className = "alert-aqi bg-dark";
+          document.getElementById("components").innerHTML = "";
         });
-}
-</script>
-
+    }
+  </script>
 
 </body>
 </html>
