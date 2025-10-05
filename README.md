@@ -13,4 +13,5 @@ All this information is summarised in simple alerts, which help the user get cle
 The project is coded on Python and is deployed on Azure servers.
 
 Our current version, available for the Los Angeles area can be tested at: https://cloud2action.health/
+
 ![App Schema](imgs/AppSchema.png)
