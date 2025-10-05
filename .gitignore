@@ -1,5 +1,6 @@
 **/desktop.ini
 env_NasaSpace/
+**/__pycache__
 /data/*
 !/data/.gitkeep
 /scripts/*
