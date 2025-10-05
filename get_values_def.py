@@ -214,10 +214,10 @@ if __name__ == "__main__":
     lat, lon = 33.793715, -118.171615
 
     # Current-day window
-    date_from = "2025-10-04T00:00:00Z"
+    date_from_last_week = time.time() - 7 * 24 * 60 * 60  # I want to get the data from the last week
     date_to = time.time()
 
-    payload = get_air_quality_payload(lat, lon, date_from, date_to, api_key="a19444b8b983c4def60c98df1010f162da2bbffbb1f494ccbffee228068cbef7")
+    payload = get_air_quality_payload(lat, lon, date_from_last_week, date_to, api_key="a19444b8b983c4def60c98df1010f162da2bbffbb1f494ccbffee228068cbef7")
 
     df = payload["dataframe"]
     if df is not None and not df.empty:
