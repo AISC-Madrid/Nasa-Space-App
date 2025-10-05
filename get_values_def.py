@@ -3,6 +3,8 @@ from measurements import get_measurements
 import pandas as pd
 from openaq import OpenAQ
 from datetime import datetime, timezone
+from typing import Dict, Tuple, Optional
+import time
 
 locations_path = "data/output/locations.csv"
 sensors_path = "data/output/sensors.csv"
@@ -56,6 +58,7 @@ def _renorm_weights(available_keys):
     total = sum(BASE_WEIGHTS[k] for k in available_keys)
     return {k: BASE_WEIGHTS[k] / total for k in available_keys}
 
+
 def _maybe_convert_co(value):
     """
     Simple heuristic: if CO arrives in µg/m³ (rare), values will be ~1000x
@@ -71,7 +74,8 @@ def _maybe_convert_co(value):
         return v / 1000.0
     return v
 
-def compute_pollution_percentage(latest_by_param):
+
+def compute_pollution_percentage(latest_by_param: Dict[str, float]) -> Tuple[Optional[float], Optional[float]]:
     """
     latest_by_param: dict with keys in {"PM25","PM10","NO2","O3","SO2","CO"} and numeric values
     Returns (pc_no_cap, pc_0_100)
@@ -89,10 +93,12 @@ def compute_pollution_percentage(latest_by_param):
     pc_0_100 = min(100.0, pc_no_cap)
     return pc_no_cap, pc_0_100
 
-# ---------- NEW: Risk category functions (WHO 2021 based) ----------
+
+# ---------- Risk category functions (WHO 2021 based) ----------
 # PM2.5 (24h): WHO AQG & Interim Targets -> 5 bands
 # Very Low ≤ 15; Low (15, 25]; Moderate (25, 37.5]; High (37.5, 50]; Extreme > 50  [µg/m³]
-def classify_pm25_risk(pm25_value: float) -> str | None:
+
+def classify_pm25_risk(pm25_value: float) -> Optional[str]:
     if pm25_value is None:
         return None
     v = float(pm25_value)
@@ -107,9 +113,11 @@ def classify_pm25_risk(pm25_value: float) -> str | None:
     else:
         return "Extreme"
 
+
 # NO2: WHO 2021 24h AQG/ITs (25, 50, 120) + WHO 1h level (200) -> 5 bands
 # Very Low ≤ 25; Low (25, 50]; Moderate (50, 120]; High (120, 200]; Extreme > 200  [µg/m³]
-def classify_no2_risk(no2_value: float) -> str | None:
+
+def classify_no2_risk(no2_value: float) -> Optional[str]:
     if no2_value is None:
         return None
     v = float(no2_value)
@@ -124,80 +132,86 @@ def classify_no2_risk(no2_value: float) -> str | None:
     else:
         return "Extreme"
 
-# -------------------------------------------------------------------------------------------
 
-sensor_data = pd.read_csv(sensors_path)
+# ---------- Public function to call from your web backend ----------
+# Returns a dict with the three values for your frontend, and the measurements dataframe for charts.
 
-# Input coordinates (lat, lon)
-coordiates = (33.793715, -118.171615)
-nearest_location_id = nearest_location(coordiates, locations_path)
-print(f"Nearest location ID: {nearest_location_id}")
+def get_air_quality_payload(
+    lat: float,
+    lon: float,
+    date_from_iso: str,
+    date_to_iso: str,
+    limit: int = 1000,
+    api_key: Optional[str] = None,
+):
+    """Fetch measurements from nearest location and prepare frontend payload.
 
-# Sensors at the nearest location
-sensor_ids = sensor_data[sensor_data["location_id"] == nearest_location_id]["id"].tolist()
+    Returns
+    -------
+    payload: dict
+        {
+          "pc_no_cap": float | None,
+          "pm25_risk": str | None,
+          "no2_risk": str | None,
+          "dataframe": pd.DataFrame (the full measurements df)
+        }
+    """
+    sensor_data = pd.read_csv(sensors_path)
+    nearest_location_id = nearest_location((lat, lon), locations_path)
 
-# Current-day window (hourly)
-datetime_from = "2025-10-04T00:00:00Z"
-datetime_to = "2025-10-04T23:59:59Z"
-limit = 1000
+    sensor_ids = sensor_data[sensor_data["location_id"] == nearest_location_id]["id"].tolist()
 
-with OpenAQ(api_key="a19444b8b983c4def60c98df1010f162da2bbffbb1f494ccbffee228068cbef7") as client:
-    measurements = get_measurements(sensor_ids, datetime_from, datetime_to, limit, client, sensor_data)
+    with OpenAQ(api_key=api_key) as client:
+        measurements = get_measurements(sensor_ids, date_from_iso, date_to_iso, limit, client, sensor_data)
 
-# Show the original dataframe (unchanged)
-print(measurements)
+    if measurements is None or measurements.empty:
+        return {"pc_no_cap": None, "pm25_risk": None, "no2_risk": None, "dataframe": pd.DataFrame()}
 
-# ---------- Extract last PM2.5 / NO2 values, compute % pollution, and print risk labels ----------
-if measurements is None or measurements.empty:
-    print("No measurements found in the given interval.")
-else:
     df = measurements.copy()
     df["parameter_std"] = df["parameter"].apply(_canon)
     df["datetime"] = pd.to_datetime(df["datetime"], utc=True, errors="coerce")
     df = df.sort_values("datetime")
 
-    # Last value per parameter
     latest_rows = df.groupby("parameter_std", as_index=False).tail(1)
-
-    # Build dict parameter -> last value
     latest_by_param = {
         row["parameter_std"]: float(row["value"]) if pd.notnull(row["value"]) else None
         for _, row in latest_rows.iterrows()
     }
 
-    # Clear prints for PM2.5 and NO2
     last_pm25 = latest_by_param.get("PM25")
     last_no2 = latest_by_param.get("NO2")
 
-    if last_pm25 is not None:
-        print(f"[LAST PM2.5] {last_pm25:.2f} µg/m³")
-    else:
-        print("[LAST PM2.5] Not available")
-
-    if last_no2 is not None:
-        print(f"[LAST NO2] {last_no2:.2f} µg/m³")
-    else:
-        print("[LAST NO2] Not available")
-
-    # HEALTH RISK (PM2.5)
     pm25_risk = classify_pm25_risk(last_pm25) if last_pm25 is not None else None
-    if pm25_risk:
-        print(f"[HEALTH RISK (PM2.5)] {pm25_risk}")
-    else:
-        print("[HEALTH RISK (PM2.5)] Not available")
-
-    # RISK X (NO2)
     no2_risk = classify_no2_risk(last_no2) if last_no2 is not None else None
-    if no2_risk:
-        print(f"[RISK X (NO2)] {no2_risk}")
-    else:
-        print("[RISK X (NO2)] Not available")
 
-    # Pollution percentage (previous approach)
     pc_no_cap, pc_0_100 = compute_pollution_percentage(latest_by_param)
-    if pc_no_cap is None:
-        print("[POLLUTION PERCENTAGE] Cannot compute (no valid parameters).")
-    else:
-        print(f"[POLLUTION PERCENTAGE] {pc_no_cap:.1f}% (no cap)")
-        print(f"[POLLUTION INDEX 0–100] {pc_0_100:.1f}")
-# --------------------------------------------------------------------------------------------
+
+    return {
+        "pc_no_cap": pc_no_cap,
+        "pm25_risk": pm25_risk,
+        "no2_risk": no2_risk,
+        "dataframe": df,
+    }
+
+
+# ---------- Example CLI usage (kept for local testing; optional to call) ----------
+if __name__ == "__main__":
+    # Input coordinates (lat, lon)
+    lat, lon = 33.793715, -118.171615
+
+    # Current-day window
+    date_from = "2025-10-04T00:00:00Z"
+    date_to = time.time()
+
+    payload = get_air_quality_payload(lat, lon, date_from, date_to, api_key="a19444b8b983c4def60c98df1010f162da2bbffbb1f494ccbffee228068cbef7")
+
+    df = payload["dataframe"]
+    # Ensure the dataframe is stably sorted and index reset before printing/sending to frontend
+    if df is not None and not df.empty:
+        df = df.sort_values(["datetime", "parameter_std", "sensor_id"], kind="mergesort").reset_index(drop=True)
+
+    print(df)
+
+    print(f"[POLLUTION PERCENTAGE] {payload['pc_no_cap'] if payload['pc_no_cap'] is not None else 'N/A'}")
+    print(f"[HEALTH RISK (PM2.5)] {payload['pm25_risk'] if payload['pm25_risk'] else 'N/A'}")
+    print(f"[RISK X (NO2)] {payload['no2_risk'] if payload['no2_risk'] else 'N/A'}")
