@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cloud2Action Health – Air Quality Dashboard</title>
+  <title>Cloud2Action Health – WMS Map</title>
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/728/728093.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -21,18 +21,15 @@
       background-color: #f9fafb;
     }
 
-    /* Navbar */
     nav.navbar {
       background-color: #0d6efd;
     }
-
     nav.navbar .navbar-brand {
       color: white;
       font-weight: 600;
       letter-spacing: 0.5px;
     }
 
-    /* Layout */
     #map {
       height: calc(100vh - 56px);
       width: 100%;
@@ -115,72 +112,78 @@
 
   <!-- JS -->
   <script>
-  // Initialize map
-  var map = L.map('map').fitWorld();
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
+    // Initialize map
+    var map = L.map('map').fitWorld();
 
-  // Locate user
-  map.locate({setView: true, maxZoom: 12});
+    // Base tile layer
+    var baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-  // When location is found
-  map.on('locationfound', e => {
-      L.marker(e.latlng).addTo(map)
-        .bindPopup('You are here').openPopup();
-      fetchAirQuality(e.latlng.lat, e.latlng.lng);
-  });
+    // WMS layers
+    var wmsNO2 = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
+        layers: "OMI_Nitrogen_Dioxide_Tropo_Column",
+        format: "image/png",
+        transparent: true,
+        version: "1.1.1",
+        attribution: "NASA GIBS"
+    });
 
-  // When user clicks somewhere on the map
-  map.on('click', e => {
-      // Remove old popups
-      map.closePopup();
-      
-      // Add marker at clicked location
-      L.marker(e.latlng).addTo(map)
-        .bindPopup('Fetching air quality...').openPopup();
-      
-      // Call backend to get AQI
-      fetchAirQuality(e.latlng.lat, e.latlng.lng);
-  });
+    var wmsOzone = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
+        layers: "TEMPO_L3_Ozone_Column_Amount",
+        format: "image/png",
+        transparent: true,
+        version: "1.1.1",
+        attribution: "NASA GIBS"
+    });
 
-  // Fetch air quality data from backend
-  async function fetchAirQuality(lat, lon) {
-      try {
-          const res = await fetch("/get_air_quality", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ lat, lon })
-          });
-          const data = await res.json();
+    var wmsPM = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
+        layers: "MODIS_Aqua_Aerosol_Optical_Depth_3km",
+        format: "image/png",
+        transparent: true,
+        version: "1.1.1",
+        attribution: "NASA GIBS"
+    });
 
-          if (data.error) {
-              document.getElementById("aqi").textContent = "Error";
-              document.getElementById("components").innerHTML =
-                  `<li class="list-group-item text-danger">${data.error}</li>`;
-              return;
-          }
+    var wmsAI = L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi", {
+        layers: "TEMPO_L3_Ozone_UV_Aerosol_Index",
+        format: "image/png",
+        transparent: true,
+        version: "1.1.1",
+        attribution: "NASA GIBS"
+    });
 
-          document.getElementById("aqi").textContent = data.aqi;
+    // Add **default visible layer**
+    wmsNO2.addTo(map);
 
-          const componentsList = document.getElementById("components");
-          componentsList.innerHTML = "";
-          for (const [key, value] of Object.entries(data.components)) {
-              componentsList.innerHTML += `
-                <li class="list-group-item d-flex justify-content-between">
-                  <span>${key.toUpperCase()}</span>
-                  <span class="fw-bold">${value.toFixed(2)} µg/m³</span>
-                </li>`;
-          }
+    // Layer control
+    var overlayMaps = {
+        "Nitrogen Dioxide": wmsNO2,
+        "Ozone": wmsOzone,
+        "Particulate Matter": wmsPM,
+        "Aerosol Index": wmsAI
+    };
 
-      } catch (err) {
-          document.getElementById("aqi").textContent = "--";
-          document.getElementById("components").innerHTML =
-              `<li class="list-group-item text-danger">Failed to connect to server.</li>`;
-      }
-  }
+    L.control.layers({"OpenStreetMap": baseLayer}, overlayMaps).addTo(map);
+
+    // Locate user
+    map.locate({setView: true, maxZoom: 12});
+
+    map.on('locationfound', e => {
+        L.marker(e.latlng).addTo(map)
+          .bindPopup('You are here').openPopup();
+        fetchAirQuality(e.latlng.lat, e.latlng.lng);
+    });
+
+    map.on('click', e => {
+        map.closePopup();
+        L.marker(e.latlng).addTo(map)
+          .bindPopup('Fetching air quality...').openPopup();
+        fetchAirQuality(e.latlng.lat, e.latlng.lng);
+    });
 </script>
+
 
 </body>
 </html>
