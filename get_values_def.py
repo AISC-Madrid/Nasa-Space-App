@@ -234,3 +234,12 @@ if __name__ == "__main__":
         print("Latest per-parameter values:")
         for item in payload["latest_params"]:
             print(f" - {item['parameter']}: {item['value_str']} µg/m³")
+
+
+params_dict = {}
+for param in df["parameter_std"].unique():
+    dictionary = {}
+    param_df = df[df["parameter_std"] == param]["datetime", "value"].reset_index(drop=True)
+    for i in range(len(param_df)):
+        dictionary[param_df.loc[i, "datetime"]] = param_df.loc[i, "value"]
+    params_dict[param] = dictionary
